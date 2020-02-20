@@ -39,7 +39,7 @@
         },
 
         
-        "PrivateSubnetId1": {
+        "PublicSubnetId1": {
           "Type": "AWS::EC2::Subnet",
           "Properties": {
             "VpcId": { "Ref" : "MyCloudVPC" },
@@ -54,12 +54,12 @@
             },
             "Tags": [
                 {"Key" : "Name",
-                 "Value" : "MyPrivateSubnetID1-csye6225"
+                 "Value" : "MyPublicSubnetID1-csye6225"
                 }
             ]
           }
         },  
-        "PrivateSubnetId2": {
+        "PublicSubnetId2": {
             "Type": "AWS::EC2::Subnet",
             "Properties": {
               "VpcId": { "Ref" : "MyCloudVPC" },
@@ -74,12 +74,12 @@
               },
               "Tags": [
                   {"Key" : "Name",
-                   "Value" : "MyPrivateSubnetID2-csye6225"
+                   "Value" : "MyPublicSubnetID2-csye6225"
                   }
               ]
             }
           },
-          "PrivateSubnetId3": {
+          "PublicSubnetId3": {
             "Type": "AWS::EC2::Subnet",
             "Properties": {
               "VpcId": { "Ref" : "MyCloudVPC" },
@@ -94,7 +94,7 @@
               },
               "Tags": [
                   {"Key" : "Name",
-                   "Value" : "MyPrivateSubnetID3-csye6225"
+                   "Value" : "MyPublicSubnetID3-csye6225"
                   }
               ]
             }
@@ -138,21 +138,21 @@
     "mySubnet1RouteTableAssociation": {
       "Type" : "AWS::EC2::SubnetRouteTableAssociation",
       "Properties" : {
-         "SubnetId" : { "Ref" : "PrivateSubnetId1" },
+         "SubnetId" : { "Ref" : "PublicSubnetId1" },
          "RouteTableId" : { "Ref" : "MyRouteTable" }
       }
    },
    "mySubnet2RouteTableAssociation" : {
     "Type" : "AWS::EC2::SubnetRouteTableAssociation",
     "Properties" : {
-       "SubnetId" : { "Ref" : "PrivateSubnetId2" },
+       "SubnetId" : { "Ref" : "PublicSubnetId2" },
        "RouteTableId" : { "Ref" : "MyRouteTable" }
     }
  },
  "mySubnet3RouteTableAssociation" : {
   "Type" : "AWS::EC2::SubnetRouteTableAssociation",
   "Properties" : {
-     "SubnetId" : { "Ref" : "PrivateSubnetId3" },
+     "SubnetId" : { "Ref" : "PublicSubnetId3" },
      "RouteTableId" : { "Ref" : "MyRouteTable" }
   }
 }
