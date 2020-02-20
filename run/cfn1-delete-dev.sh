@@ -1,0 +1,1 @@
+aws cloudformation --profile dev-profile delete-stack --stack-name csye6225demo --region us-east-2
