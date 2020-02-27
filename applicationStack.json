@@ -1,6 +1,16 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Infrastructure Setup using CloudFormation - Application Stack",
+    "Conditions": {
+        "RdsPublicAccessCondition": {
+            "Fn::Equals": [
+                {
+                    "Ref": "PubliclyAccessibleInstance"
+                },
+                "yes"
+            ]
+        }
+    },
     "Parameters": {
         "VPCCIDRBlock": {
             "Type": "String",
@@ -72,6 +82,17 @@
         "DatabasePassword": {
             "Type": "String",
             "NoEcho": true
+        },
+
+        "instanceSize":{
+            "Type": "Number"
+        },
+        "PubliclyAccessibleInstance": {
+            "Type": "String",
+            "AllowedValues": [
+                "yes",
+                "no"
+            ]
         }
     },
     "Resources": {
@@ -326,11 +347,11 @@
             "Type": "AWS::S3::Bucket",
             "DeletionPolicy": "Delete",
             "Properties": {
-                "PublicAccessBlockConfiguration": {	
-                    "BlockPublicAcls": "true",	
-                    "BlockPublicPolicy": "true",	
-                    "IgnorePublicAcls": "true",	
-                    "RestrictPublicBuckets": "true"	
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": "true",
+                    "BlockPublicPolicy": "true",
+                    "IgnorePublicAcls": "true",
+                    "RestrictPublicBuckets": "true"
                 },
                 "LifecycleConfiguration": {
                     "Rules": [
@@ -370,9 +391,9 @@
                         {
                             "Effect": "Allow",
                             "Action": [
-                                "s3:ListBucket",	
-                                "s3:PutObject",	
-                                "s3:GetObject",	
+                                "s3:ListBucket",
+                                "s3:PutObject",
+                                "s3:GetObject",
                                 "s3:DeleteObject"
                             ],
                             "Resource": {
@@ -479,8 +500,10 @@
                     {
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
-                            "VolumeSize": "20",
-                            "VolumeType": "gp2",	
+                            "VolumeSize": {
+                                "Ref":"instanceSize"
+                            },
+                            "VolumeType": "gp2",
                             "DeleteOnTermination": true
                         }
                     }
@@ -562,7 +585,13 @@
                 "MasterUserPassword": {
                     "Ref": "DatabasePassword"
                 },
-                "PubliclyAccessible": false,
+                "PubliclyAccessible": {
+                    "Fn::If": [
+                        "RdsPublicAccessCondition",
+                        true,
+                        false
+                    ]
+                },
                 "Tags": [
                     {
                         "Key": "Name",
