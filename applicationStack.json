@@ -2,11 +2,7 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Infrastructure Setup using CloudFormation - Application Stack",
     "Parameters": {
-        "Region": {
-            "Type": "String",
-            "Default": "us-east-1"
-        },
-        "VPCCidrBlockParameter": {
+        "VPCCIDRBlock": {
             "Type": "String",
             "Description": "Enter the CIDR Block range: ",
             "AllowedPattern": "((\\d{1,3})\\.){3}\\d{1,3}/\\d{1,2}"
@@ -14,17 +10,17 @@
         "VPCName": {
             "Type": "String"
         },
-        "Subnet1CIDRBlock": {
+        "SubnetCIDRBlock1": {
             "Type": "String",
             "Description": "Enter the CIDR Block range: ",
             "AllowedPattern": "((\\d{1,3})\\.){3}\\d{1,3}/\\d{1,2}"
         },
-        "Subnet2CIDRBlock": {
+        "SubnetCIDRBlock2": {
             "Type": "String",
             "Description": "Enter the CIDR Block range: ",
             "AllowedPattern": "((\\d{1,3})\\.){3}\\d{1,3}/\\d{1,2}"
         },
-        "Subnet3CIDRBlock": {
+        "SubnetCIDRBlock3": {
             "Type": "String",
             "Description": "Enter the CIDR Block range: ",
             "AllowedPattern": "((\\d{1,3})\\.){3}\\d{1,3}/\\d{1,2}"
@@ -32,7 +28,7 @@
         "AppName": {
             "Type": "String"
         },
-        "Ec2InstanceType": {
+        "Ec2Instance": {
             "Type": "String",
             "Default": "t2.micro",
             "AllowedValues": [
@@ -41,40 +37,39 @@
             ],
             "Description": "Enter t2.micro or m1.small. Default is t2.micro."
         },
-        "SSHKeyName": {
+        "SSHKey": {
             "Type": "String"
         },
         "AMI": {
             "Type": "String"
         },
-        "DBInstanceIdentifier": {
+        "DatabaseInstance": {
             "Type": "String"
         },
-        "DBEngine": {
+        "DatabaseEngine": {
             "Type": "String"
         },
-        "DBEngineVersion": {
+        "DatabaseEngineVersion": {
             "Type": "String"
         },
-        "DBInstanceClass": {
+        "DatabaseInstanceClass": {
             "Type": "String"
         },
-        "DBStorageType": {
+        "DatabaseStorageTYpe": {
             "Type": "String",
             "Default": "gp2"
         },
-        "DBAllocatedStorage": {
+        "DatabaseAllocatedStorage": {
             "Type": "Number",
-            "Default": "20",
             "Description": "The size of the database (GiB)"
         },
-        "DBName": {
+        "DatabaseName": {
             "Type": "String"
         },
-        "DBUser": {
+        "DatabaseUser": {
             "Type": "String"
         },
-        "DBPassword": {
+        "DatabasePassword": {
             "Type": "String",
             "NoEcho": true
         }
@@ -84,7 +79,7 @@
             "Type": "AWS::EC2::VPC",
             "Properties": {
                 "CidrBlock": {
-                    "Ref": "VPCCidrBlockParameter"
+                    "Ref": "VPCCIDRBlock"
                 },
                 "InstanceTenancy": "default",
                 "Tags": [
@@ -104,7 +99,7 @@
                     "Ref": "MyCloudVPC"
                 },
                 "CidrBlock": {
-                    "Ref": "Subnet1CIDRBlock"
+                    "Ref": "SubnetCIDRBlock1"
                 },
                 "AvailabilityZone": {
                     "Fn::Select": [
@@ -129,7 +124,7 @@
                     "Ref": "MyCloudVPC"
                 },
                 "CidrBlock": {
-                    "Ref": "Subnet2CIDRBlock"
+                    "Ref": "SubnetCIDRBlock2"
                 },
                 "AvailabilityZone": {
                     "Fn::Select": [
@@ -154,7 +149,7 @@
                     "Ref": "MyCloudVPC"
                 },
                 "CidrBlock": {
-                    "Ref": "Subnet3CIDRBlock"
+                    "Ref": "SubnetCIDRBlock3"
                 },
                 "AvailabilityZone": {
                     "Fn::Select": [
@@ -286,6 +281,12 @@
                         "CidrIp": "0.0.0.0/0",
                         "FromPort": 443,
                         "ToPort": 443
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": 8000,
+                        "ToPort": 8000
                     }
                 ],
                 "VpcId": {
@@ -323,7 +324,14 @@
         },
         "S3Bucket": {
             "Type": "AWS::S3::Bucket",
+            "DeletionPolicy": "Delete",
             "Properties": {
+                "PublicAccessBlockConfiguration": {	
+                    "BlockPublicAcls": "true",	
+                    "BlockPublicPolicy": "true",	
+                    "IgnorePublicAcls": "true",	
+                    "RestrictPublicBuckets": "true"	
+                },
                 "LifecycleConfiguration": {
                     "Rules": [
                         {
@@ -362,7 +370,10 @@
                         {
                             "Effect": "Allow",
                             "Action": [
-                                "s3:*"
+                                "s3:ListBucket",	
+                                "s3:PutObject",	
+                                "s3:GetObject",	
+                                "s3:DeleteObject"
                             ],
                             "Resource": {
                                 "Fn::Join": [
@@ -448,7 +459,7 @@
                     }
                 ],
                 "InstanceType": {
-                    "Ref": "Ec2InstanceType"
+                    "Ref": "Ec2Instance"
                 },
                 "Tags": [
                     {
@@ -459,7 +470,7 @@
                     }
                 ],
                 "KeyName": {
-                    "Ref": "SSHKeyName"
+                    "Ref": "SSHKey"
                 },
                 "IamInstanceProfile": {
                     "Ref": "EC2InstanceProfile"
@@ -469,7 +480,8 @@
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
                             "VolumeSize": "20",
-                            "VolumeType": "gp2"
+                            "VolumeType": "gp2",	
+                            "DeleteOnTermination": true
                         }
                     }
                 ],
@@ -479,13 +491,8 @@
                         "Fn::Join": [
                             "",
                             [
-                                {
-                                    "Fn::GetAtt": [
-                                        "RDSInstance",
-                                        "Endpoint.Address"
-                                    ]
-                                },
-                                " >> /etc/profile \n",
+                                "#!/bin/bash \n",
+                                "sudo apt install unzip \n",
                                 "echo export DB_PORT=",
                                 {
                                     "Fn::GetAtt": [
@@ -496,36 +503,32 @@
                                 " >> /etc/profile \n",
                                 "echo export DB_USERNAME=",
                                 {
-                                    "Ref": "DBUser"
+                                    "Ref": "DatabaseUser"
                                 },
                                 " >> /etc/profile \n",
                                 "echo export DB_PASSWORD=",
                                 {
-                                    "Ref": "DBPassword"
+                                    "Ref": "DatabasePassword"
                                 },
                                 " >> /etc/profile \n",
-                                "echo export DB_Name=",
+                                "echo export DB_HOST=",
                                 {
-                                    "Ref": "DBName"
+                                    "Fn::GetAtt": [
+                                        "RDSInstance",
+                                        "Endpoint.Address"
+                                    ]
+                                },
+                                " >> /etc/profile \n",
+                                "echo export DB_NAME=",
+                                {
+                                    "Ref": "DatabaseName"
                                 },
                                 " >> /etc/profile \n",
                                 "echo export S3_BUCKET=",
                                 {
-                                    "Fn::GetAtt": [
-                                        "S3Bucket",
-                                        "Arn"
-                                    ]
+                                    "Ref": "S3Bucket"
                                 },
-                                " >> /etc/profile \n",
-                                "#!/bin/bash \n",
-                                "sudo apt-get update \n",
-                                "sudo apt install postgresql-client-common \n",
-                                "sudo apt install postgresql postgresql-contrib \n",
-                                "mkdir Cloud \n",
-                                "cd Cloud \n",
-                                "sudo apt install unzip \n",
-                                "sudo service codedeploy-agent status \n",
-                                "echo export DB_HOST="
+                                " >> /etc/profile \n"
                             ]
                         ]
                     }
@@ -535,32 +538,29 @@
         "RDSInstance": {
             "Properties": {
                 "DBInstanceIdentifier": {
-                    "Ref": "DBInstanceIdentifier"
+                    "Ref": "DatabaseInstance"
                 },
                 "DBName": {
-                    "Ref": "DBName"
+                    "Ref": "DatabaseName"
                 },
                 "MultiAZ": false,
                 "AllocatedStorage": {
-                    "Ref": "DBAllocatedStorage"
+                    "Ref": "DatabaseAllocatedStorage"
                 },
                 "DBInstanceClass": {
-                    "Ref": "DBInstanceClass"
-                },
-                "StorageType": {
-                    "Ref": "DBStorageType"
+                    "Ref": "DatabaseInstanceClass"
                 },
                 "Engine": {
-                    "Ref": "DBEngine"
+                    "Ref": "DatabaseEngine"
                 },
                 "EngineVersion": {
-                    "Ref": "DBEngineVersion"
+                    "Ref": "DatabaseEngineVersion"
                 },
                 "MasterUsername": {
-                    "Ref": "DBUser"
+                    "Ref": "DatabaseUser"
                 },
                 "MasterUserPassword": {
-                    "Ref": "DBPassword"
+                    "Ref": "DatabasePassword"
                 },
                 "PubliclyAccessible": false,
                 "Tags": [
