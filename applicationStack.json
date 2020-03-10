@@ -53,6 +53,16 @@
         "AMI": {
             "Type": "String"
         },
+        "AWSRegion": {
+            "Type": "String"
+        },
+        "CodeDeployApplicationName": {
+            "Type": "String"
+        },
+        "S3ArtifactsBucket": {
+            "Type": "String"
+        },
+
         "DatabaseInstance": {
             "Type": "String"
         },
@@ -83,6 +93,9 @@
             "Type": "String",
             "NoEcho": true
         },
+        "AWSAccountID": {
+            "Type": "String"
+        },
 
         "instanceSize":{
             "Type": "Number"
@@ -94,6 +107,7 @@
                 "no"
             ]
         }
+      
     },
     "Resources": {
         "MyCloudVPC": {
@@ -269,6 +283,280 @@
                 }
             }
         },
+        "CodeDeployEC2S3Policy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "ManagedPolicyName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "CodeDeploy-EC2-S3-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:GetObject"
+                            ],
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "S3ArtifactsBucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "CircleCIUploadToS3Policy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "ManagedPolicyName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "CircleCI-Upload-To-S3-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:PutObject"
+                            ],
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "S3ArtifactsBucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Users": [
+                    "circleci"
+                ]
+            }
+        },
+        "CirlceCICodeDeployPolicy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "ManagedPolicyName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "CircleCI-Code-Deploy-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codedeploy:RegisterApplicationRevision",
+                                "codedeploy:GetApplicationRevision"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:codedeploy:",
+                                            {
+                                                "Ref": "AWSRegion"
+                                            },
+                                            ":",
+                                            {
+                                                "Ref": "AWSAccountID"
+                                            },
+                                            ":application:",
+                                            {
+                                                "Ref": "CodeDeployApplicationName"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codedeploy:CreateDeployment",
+                                "codedeploy:GetDeployment"
+                            ],
+                            "Resource": [
+                                "*"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codedeploy:GetDeploymentConfig"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:codedeploy:",
+                                            {
+                                                "Ref": "AWSRegion"
+                                            },
+                                            ":",
+                                            {
+                                                "Ref": "AWSAccountID"
+                                            },
+                                            ":deploymentconfig:CodeDeployDefault.OneAtATime"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:codedeploy:",
+                                            {
+                                                "Ref": "AWSRegion"
+                                            },
+                                            ":",
+                                            {
+                                                "Ref": "AWSAccountID"
+                                            },
+                                            ":deploymentconfig:CodeDeployDefault.HalfAtATime"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:codedeploy:",
+                                            {
+                                                "Ref": "AWSRegion"
+                                            },
+                                            ":",
+                                            {
+                                                "Ref": "AWSAccountID"
+                                            },
+                                            ":deploymentconfig:CodeDeployDefault.AllAtOnce"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "Users": [
+                    "circleci"
+                ]
+            }
+        },
+        "CodeDeployEC2ServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    {
+                        "Ref": "CodeDeployEC2S3Policy"
+                    },
+                    {
+                        "Ref": "WebAppS3EC2S3Policy"
+                    }
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "CodeDeployEC2ServiceRole-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                }
+            }
+        },
+        "CodeDeployServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "codedeploy.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "CodeDeployServiceRole-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                }
+            }
+        },
         "WebAppSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
@@ -342,7 +630,7 @@
                     "Ref": "MyCloudVPC"
                 }
             }
-        },
+        },          
         "S3Bucket": {
             "Type": "AWS::S3::Bucket",
             "DeletionPolicy": "Delete",
@@ -678,4 +966,5 @@
             }
         }
     }
+    
 }
