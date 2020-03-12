@@ -98,6 +98,9 @@
         "instanceSize": {
             "Type": "Number"
         },
+        "IamUser": {
+            "Type": "String"
+        },
         "PubliclyAccessibleInstance": {
             "Type": "String",
             "AllowedValues": [
@@ -357,7 +360,9 @@
                     ]
                 },
                 "Users": [
-                    "circleci"
+                    {
+                        "Ref": "IamUser"
+                    }
                 ]
             }
         },
@@ -475,7 +480,9 @@
                     ]
                 },
                 "Users": [
-                    "circleci"
+                    {
+                        "Ref": "IamUser"
+                    }
                 ]
             }
         },
@@ -560,7 +567,7 @@
                 "GroupName": {
                     "Fn::Sub": "${AppName}-WebAppSecurityGroup"
                 },
-                "GroupDescription": "$WebApp Security Group through Cloud Formation",
+                "GroupDescription": "WebApp Security Group through Cloud Formation",
                 "Tags": [
                     {
                         "Key": "Name",
@@ -665,60 +672,6 @@
                 }
             }
         },
-        "CodeDeployApplication": {
-            "Type": "AWS::CodeDeploy::Application",
-            "Properties": {
-                "ApplicationName": {
-                    "Ref": "CodeDeployApplicationName"
-                },
-                "ComputePlatform": "Server"
-            }
-        },
-        "CodeDeploymentGroup": {
-            "Type": "AWS::CodeDeploy::DeploymentGroup",
-            "Properties": {
-                "ApplicationName": {
-                    "Ref": "CodeDeployApplication"
-                },
-                "AutoRollbackConfiguration": {
-                    "Enabled": true,
-                    "Events": [
-                        "DEPLOYMENT_FAILURE"
-                    ]
-                },
-                "DeploymentConfigName": "CodeDeployDefault.AllAtOnce",
-                "DeploymentGroupName": {
-                    "Fn::Join": [
-                        "",
-                        [
-                            "Code-deployment-group-",
-                            {
-                                "Ref": "AppName"
-                            }
-                        ]
-                    ]
-                },
-                "DeploymentStyle": {
-                    "DeploymentOption": "WITHOUT_TRAFFIC_CONTROL",
-                    "DeploymentType": "IN_PLACE"
-                },
-                "Ec2TagFilters": [
-                    {
-                        "Key": "Name",
-                        "Type": "KEY_AND_VALUE",
-                        "Value": {
-                            "Fn::Sub": "${AppName}-EC2Instance"
-                        }
-                    }
-                ],
-                "ServiceRoleArn": {
-                    "Fn::GetAtt": [
-                        "CodeDeployServiceRole",
-                        "Arn"
-                    ]
-                }
-            }
-        },
         "WebAppS3EC2S3Policy": {
             "Type": "AWS::IAM::ManagedPolicy",
             "DependsOn": "S3Bucket",
@@ -788,9 +741,63 @@
                 "Path": "/",
                 "Roles": [
                     {
-                        "Ref": "EC2CSYE6225Role"
+                        "Ref": "CodeDeployEC2ServiceRole"
                     }
                 ]
+            }
+        },
+        "CodeDeployApplication": {
+            "Type": "AWS::CodeDeploy::Application",
+            "Properties": {
+                "ApplicationName": {
+                    "Ref": "CodeDeployApplicationName"
+                },
+                "ComputePlatform": "Server"
+            }
+        },
+        "CodeDeploymentGroup": {
+            "Type": "AWS::CodeDeploy::DeploymentGroup",
+            "Properties": {
+                "ApplicationName": {
+                    "Ref": "CodeDeployApplication"
+                },
+                "AutoRollbackConfiguration": {
+                    "Enabled": true,
+                    "Events": [
+                        "DEPLOYMENT_FAILURE"
+                    ]
+                },
+                "DeploymentConfigName": "CodeDeployDefault.AllAtOnce",
+                "DeploymentGroupName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "Code-deployment-group-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                },
+                "DeploymentStyle": {
+                    "DeploymentOption": "WITHOUT_TRAFFIC_CONTROL",
+                    "DeploymentType": "IN_PLACE"
+                },
+                "Ec2TagFilters": [
+                    {
+                        "Key": "Name",
+                        "Type": "KEY_AND_VALUE",
+                        "Value": {
+                            "Fn::Sub": "${AppName}-EC2Instance"
+                        }
+                    }
+                ],
+                "ServiceRoleArn": {
+                    "Fn::GetAtt": [
+                        "CodeDeployServiceRole",
+                        "Arn"
+                    ]
+                }
             }
         },
         "ec2Instance": {
@@ -854,43 +861,45 @@
                             "",
                             [
                                 "#!/bin/bash \n",
+                                "sudo apt update \n",
                                 "sudo apt install unzip \n",
-                                "echo export DB_PORT=",
+                                "sudo service codedeploy-agent status \n",
+                                "sudo echo export DB_PORT=",
                                 {
                                     "Fn::GetAtt": [
                                         "RDSInstance",
                                         "Endpoint.Port"
                                     ]
                                 },
-                                " >> /etc/profile \n",
-                                "echo export DB_USERNAME=",
+                                " >> /etc/environment \n",
+                                "sudo echo export DB_USERNAME=",
                                 {
                                     "Ref": "DatabaseUser"
                                 },
-                                " >> /etc/profile \n",
-                                "echo export DB_PASSWORD=",
+                                " >> /etc/environment \n",
+                                "sudo echo export DB_PASSWORD=",
                                 {
                                     "Ref": "DatabasePassword"
                                 },
-                                " >> /etc/profile \n",
-                                "echo export DB_HOST=",
+                                " >> /etc/environment \n",
+                                "sudo echo export DB_HOST=",
                                 {
                                     "Fn::GetAtt": [
                                         "RDSInstance",
                                         "Endpoint.Address"
                                     ]
                                 },
-                                " >> /etc/profile \n",
-                                "echo export DB_NAME=",
+                                " >> /etc/environment \n",
+                                "sudo echo export DB_NAME=",
                                 {
                                     "Ref": "DatabaseName"
                                 },
-                                " >> /etc/profile \n",
-                                "echo export S3_BUCKET=",
+                                " >> /etc/environment \n",
+                                "sudo echo export S3_BUCKET=",
                                 {
                                     "Ref": "S3Bucket"
                                 },
-                                " >> /etc/profile \n"
+                                " >> /etc/environment \n"
                             ]
                         ]
                     }
