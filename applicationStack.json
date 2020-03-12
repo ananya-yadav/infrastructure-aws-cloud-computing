@@ -62,7 +62,6 @@
         "S3ArtifactsBucket": {
             "Type": "String"
         },
-
         "DatabaseInstance": {
             "Type": "String"
         },
@@ -96,8 +95,7 @@
         "AWSAccountID": {
             "Type": "String"
         },
-
-        "instanceSize":{
+        "instanceSize": {
             "Type": "Number"
         },
         "PubliclyAccessibleInstance": {
@@ -107,7 +105,6 @@
                 "no"
             ]
         }
-      
     },
     "Resources": {
         "MyCloudVPC": {
@@ -630,7 +627,7 @@
                     "Ref": "MyCloudVPC"
                 }
             }
-        },          
+        },
         "S3Bucket": {
             "Type": "AWS::S3::Bucket",
             "DeletionPolicy": "Delete",
@@ -664,6 +661,60 @@
                                 "SSEAlgorithm": "AES256"
                             }
                         }
+                    ]
+                }
+            }
+        },
+        "CodeDeployApplication": {
+            "Type": "AWS::CodeDeploy::Application",
+            "Properties": {
+                "ApplicationName": {
+                    "Ref": "CodeDeployApplicationName"
+                },
+                "ComputePlatform": "Server"
+            }
+        },
+        "CodeDeploymentGroup": {
+            "Type": "AWS::CodeDeploy::DeploymentGroup",
+            "Properties": {
+                "ApplicationName": {
+                    "Ref": "CodeDeployApplication"
+                },
+                "AutoRollbackConfiguration": {
+                    "Enabled": true,
+                    "Events": [
+                        "DEPLOYMENT_FAILURE"
+                    ]
+                },
+                "DeploymentConfigName": "CodeDeployDefault.AllAtOnce",
+                "DeploymentGroupName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "Code-deployment-group-",
+                            {
+                                "Ref": "AppName"
+                            }
+                        ]
+                    ]
+                },
+                "DeploymentStyle": {
+                    "DeploymentOption": "WITHOUT_TRAFFIC_CONTROL",
+                    "DeploymentType": "IN_PLACE"
+                },
+                "Ec2TagFilters": [
+                    {
+                        "Key": "Name",
+                        "Type": "KEY_AND_VALUE",
+                        "Value": {
+                            "Fn::Sub": "${AppName}-EC2Instance"
+                        }
+                    }
+                ],
+                "ServiceRoleArn": {
+                    "Fn::GetAtt": [
+                        "CodeDeployServiceRole",
+                        "Arn"
                     ]
                 }
             }
@@ -789,7 +840,7 @@
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
                             "VolumeSize": {
-                                "Ref":"instanceSize"
+                                "Ref": "instanceSize"
                             },
                             "VolumeType": "gp2",
                             "DeleteOnTermination": true
@@ -966,5 +1017,4 @@
             }
         }
     }
-    
 }
