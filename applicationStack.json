@@ -511,7 +511,9 @@
                     },
                     {
                         "Ref": "WebAppS3EC2S3Policy"
-                    }
+                    },
+                    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+                    "arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy"
                 ],
                 "RoleName": {
                     "Fn::Join": [
