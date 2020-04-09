@@ -99,6 +99,9 @@
                 "yes",
                 "no"
             ]
+        },
+        "Certificate": {
+            "Type": "String"
         }
     },
     "Resources": {
@@ -695,28 +698,13 @@
                 "SecurityGroupIngress": [
                     {
                         "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 22,
-                        "ToPort": 22
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 80,
-                        "ToPort": 80
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 443,
-                        "ToPort": 443
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
+                        "SourceSecurityGroupId": {
+                            "Ref": "LoadBalancerSecurityGroup"
+                        },
                         "FromPort": 8000,
                         "ToPort": 8000
                     }
+                    
                 ],
                 "VpcId": {
                     "Fn::ImportValue": {
@@ -744,26 +732,8 @@
                     {
                         "IpProtocol": "tcp",
                         "CidrIp": "0.0.0.0/0",
-                        "FromPort": 22,
-                        "ToPort": 22
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 80,
-                        "ToPort": 80
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
                         "FromPort": 443,
                         "ToPort": 443
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 8000,
-                        "ToPort": 8000
                     }
                 ],
                 "VpcId": {
@@ -1070,7 +1040,8 @@
                                 {
                                     "Ref": "DynamoTable"
                                 },
-                                " >> /etc/environment \n"
+                                " >> /etc/environment \n",
+                                "sudo echo export CERT_DIR=/home/ubuntu/ >> /etc/environment \n"
                             ]
                         ]
                     }
@@ -1157,8 +1128,15 @@
                 "LoadBalancerArn": {
                     "Ref": "LoadBalancer"
                 },
-                "Port": 80,
-                "Protocol": "HTTP"
+                "Port": 443,
+                "Protocol": "HTTPS",
+                "Certificates": [
+                    {
+                        "CertificateArn": {
+                            "Ref": "Certificate"
+                        }
+                    }
+                ]
             }
         },
         "LBTargetGroup": {
@@ -1312,6 +1290,7 @@
                 "MasterUserPassword": {
                     "Ref": "DatabasePassword"
                 },
+                "StorageEncrypted": true,
                 "PubliclyAccessible": {
                     "Fn::If": [
                         "RdsPublicAccessCondition",
@@ -1332,9 +1311,23 @@
                 ],
                 "DBSubnetGroupName": {
                     "Ref": "DBSubnetGroup"
+                },
+                "DBParameterGroupName": {
+                    "Ref": "RDSPostgressParameterGroup"
                 }
             },
             "Type": "AWS::RDS::DBInstance"
+        },
+        "RDSPostgressParameterGroup": {
+            "Type": "AWS::RDS::DBParameterGroup",
+            "Properties": {
+                "Family": "postgres11",
+                "Parameters": {
+                    "log_connections": 1
+                },
+                "Description": "Parameter Group for Postgress RDS"
+            }
+
         },
         "DBSubnetGroup": {
             "Type": "AWS::RDS::DBSubnetGroup",
